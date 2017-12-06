@@ -1,0 +1,159 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+# @ Read-Data
+```{r}
+suppressMessages(library(dplyr))
+suppressMessages(library(corrplot))
+suppressMessages(library(corrr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(randomForest))
+Hr=read.csv("C://Users//Administrator//Desktop//HR_Employee_Attrition_Data-1.csv.zip_attachment_253190//HR_Employee_Attrition_Data-1.csv")
+head(Hr)
+```
+
+
+# $@ Summary
+```{r}
+dim(Hr)
+summary(Hr)
+
+```
+
+## 1)Here Employee Count is equal 1 for all observation which cannot generate useful value for this sample data.Hence in this analysis, we can remove it.
+
+## 2)Standard Hours is equal 80 for all observation.Hence we can remove this attribute is same as Employee Count.BusinessTravel, Department, EducationField, Gender, jobRole, MaritalStatus and OverTime are categorical data and other variabels are continues.
+
+## 3)No Missing Value, so Remove all non value attributes these variables maynot play any significant role because they are same for all records.
+
+```{r}
+Hr=Hr[ ,-c(9,27)]
+dim(Hr)
+head(Hr)
+```
+
+## @ Correlation plot for all the variables to check dependecies
+
+```{r}
+Hr_1=Hr %>% mutate(Attrition=ifelse(Attrition=="Yes",1,0))
+head(Hr_1)
+Hr_new=Hr_1[,c(1,2,4,6,7,9,10,12,13,14,16,18,19,20,23:33)]
+x=cor(Hr_new)
+corrplot(x,method = "circle")
+```
+
+## $ Considering all the dependency variables with high correlation.Observation is explained in document.
+
+## @ Converting continuous variables into categorical variables.
+
+```{r}
+Hr= Hr %>% mutate(Education=(cut(Hr$Education,breaks=c(0,1,2,3,4,5),labels=c("Below College","College","Bachelor","Master","Doctor"))))
+Hr= Hr %>% mutate(EnvironmentSatisfaction=(cut(Hr$EnvironmentSatisfaction,breaks=c(0,1,2,3,4),labels=c("Low","Medium","High","Very high"))))
+Hr= Hr %>% mutate(JobInvolvement=(cut(Hr$JobInvolvement,breaks=c(0,1,2,3,4),labels=c("Low","Medium","High","Very high"))))
+Hr= Hr %>% mutate(JobSatisfaction=(cut(Hr$JobSatisfaction,breaks=c(0,1,2,3,4),labels=c("Low","Medium","High","Very high"))))
+Hr= Hr %>% mutate(PerformanceRating=(cut(Hr$PerformanceRating,breaks=c(0,1,2,3,4),labels=c("Low","Good","Excellent","Outstanding"))))
+Hr= Hr %>% mutate(RelationshipSatisfaction=(cut(Hr$RelationshipSatisfaction,breaks=c(0,1,2,3,4),labels=c("Low","Medium","High","Very high"))))
+Hr= Hr %>% mutate(WorkLifeBalance=(cut(Hr$WorkLifeBalance,breaks=c(0,1,2,3,4),labels=c("Bad","Good","Better","Best"))))
+Hr= Hr %>% mutate(DistanceFromHome=(cut(Hr$DistanceFromHome,breaks=c(0,6,12,18,24,30),labels=c("Very near","Near","Moderate","Far","Very far"))))
+head(Hr)
+```
+
+
+```{r}
+a=ggplot(Hr,aes(Hr$OverTime,fill = Hr$Attrition))+geom_histogram(stat = "count")
+tapply(as.numeric(Hr$Attrition) - 1 ,Hr$OverTime,mean)
+print(a)
+```
+
+## @ From the plot persons who work over time have more attrition.
+
+```{r}
+b=ggplot(Hr,aes(Hr$MaritalStatus ,fill = Hr$Attrition))+geom_histogram(stat = "count")
+tapply(as.numeric(Hr$Attrition) - 1 ,Hr$MaritalStatus,mean)
+b
+```
+
+## @ Singles are more often to leave the organization compared to married and divorced.
+
+
+```{r}
+c=ggplot(Hr,aes(Hr$JobRole ,fill = Hr$Attrition))+geom_histogram(stat = "count")
+tapply(as.numeric(Hr$Attrition) - 1 ,Hr$JobRole,mean)
+c
+```
+
+## @ We see that labaratory technican, human resources and sales representative roles have more attrition.
+
+```{r}
+d=ggplot(Hr,aes(Hr$Gender ,fill = Hr$Attrition))+geom_histogram(stat = "count")
+tapply(as.numeric(Hr$Attrition) - 1 ,Hr$Gender,mean)
+d
+```
+
+## @ Here it seems like males are more a bit high to have attrition compared to females bt when it compared to overall strength it doesn't have any comparision in attrition, they are same.
+
+```{r}
+e=ggplot(Hr,aes(Hr$Department ,fill = Hr$Attrition))+geom_histogram(stat = "count")
+tapply(as.numeric(Hr$Attrition) - 1 ,Hr$Department,mean)
+e
+```
+
+## @ Here it is same as gender,we doesn't have much to compare.
+
+```{r}
+f=ggplot(Hr,aes(Hr$EducationField ,fill = Hr$Attrition))+geom_histogram(stat = "count")
+tapply(as.numeric(Hr$Attrition) - 1 ,Hr$EducationField,mean)
+f
+```
+
+## @ Technical Degree and Human Resources are with high attrition ratio.
+
+```{r}
+g=ggplot(Hr,aes(Hr$BusinessTravel ,fill = Hr$Attrition))+geom_histogram(stat = "count")
+tapply(as.numeric(Hr$Attrition) - 1 ,Hr$BusinessTravel,mean)
+g
+```
+
+## @ Here if businesstravel is travel_frequently , than more probability to have attrition.
+
+```{r}
+h=ggplot(Hr,aes(Hr$DistanceFromHome ,fill = Hr$Attrition))+geom_histogram(stat = "count")
+tapply(as.numeric(Hr$Attrition) - 1 ,Hr$DistanceFromHome,mean)
+h
+```
+
+
+```{r}
+library(gridExtra)
+grid.arrange(a,b,c,d,e,f,g,h,ncol=3)
+```
+
+
+## @ This explains that the people who are at a Moderate and Far distance from office are more likely to have high attrition
+
+```{r}
+y=Hr_new %>% correlate() %>% focus(Attrition) %>% arrange(-Attrition)
+head(y,10)
+y %>% mutate(rowname=factor(rowname,levels=rowname[order(Attrition)])) %>% ggplot(aes(x=rowname,y=Attrition))+geom_bar(stat = "identity") +ylab("correlation with attrition") +xlab("variable")
+```
+
+
+```{r}
+ggplot(Hr, aes(OverTime, Age)) + facet_grid(.~MaritalStatus) + geom_jitter(aes(color = Attrition),alpha = 0.4)
+```
+
+## @ From this figure we can say that attrition is increasing when martial status is single and overtime is yes whose age is less than 35(approx).
+
+```{r}
+ggplot(Hr, aes(Hr$DistanceFromHome, Hr$JobRole)) + geom_jitter(aes(color = Attrition),alpha = 0.4)
+```
+
+## @ This explains that the people with job roles Sales representative and few of HR who live far from office are most likely to have high attrition.
+
+```{r}
+ggplot(Hr, aes(Hr$TotalWorkingYears, Hr$YearsWithCurrManager)) + geom_jitter(aes(color = Attrition),alpha = 0.4)
+```
+
+## @ This says the people with total working years less than 10 and years with curr. manager less than 15 has more probability of attrition.
+
